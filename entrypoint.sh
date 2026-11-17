@@ -51,11 +51,30 @@ su -s /bin/bash www-data -c 'php bin/console cache:clear --env=prod'
 echo "Starting PHP-FPM..."
 php-fpm -D -d opcache.validate_timestamps=1 -d opcache.revalidate_freq=0
 
-echo "Starting Messenger worker..."
+CONSOLE='php -d opcache.enable_cli=0 bin/console'
+
+run_forever() {
+    # $1 = consumer arguments; restarted after every exit (time limit, class save, crash)
+    (
+        while true; do
+            su -s /bin/bash www-data -c "$CONSOLE messenger:consume $1 --env=prod --time-limit=300 --memory-limit=256M --no-interaction -v" || true
+            sleep 2
+        done
+    ) &
+}
+
+echo "Starting Messenger workers..."
+# Worker 1: index queue + the GDI scheduler that moves index queue entries to the transport every 10s.
+# Without scheduler_generic_data_index new objects never reach OpenSearch -> Studio tree/detail 404.
+run_forever "pimcore_generic_data_index_queue scheduler_generic_data_index"
+# Worker 2: a second index worker (class mapping copies block a worker) + everything else
+run_forever "pimcore_generic_execution_engine pimcore_core pimcore_generic_data_index_queue pimcore_maintenance pimcore_scheduled_tasks pimcore_image_optimize pimcore_asset_update pimcore_cdn_purge"
+
+echo "Starting maintenance loop..."
 (
     while true; do
-        su -s /bin/bash www-data -c 'php -d opcache.enable_cli=0 bin/console messenger:consume pimcore_generic_execution_engine pimcore_generic_data_index_queue pimcore_core pimcore_maintenance pimcore_scheduled_tasks pimcore_image_optimize pimcore_asset_update pimcore_cdn_purge --env=prod --time-limit=300 --memory-limit=256M --no-interaction -v' || true
-        sleep 5
+        sleep 300
+        su -s /bin/bash www-data -c "$CONSOLE pimcore:maintenance --env=prod" || true
     done
 ) &
 
