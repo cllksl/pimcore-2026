@@ -14,6 +14,9 @@ security:
             provider: pimcore_admin
             http_basic: ~
 
+        # MCP endpoints (/pimcore-mcp/) — must come before pimcore_studio
+        pimcore_mcp: "%pimcore_studio_backend.mcp_firewall_settings%"
+
         pimcore_studio: "%pimcore_studio_backend.firewall_settings%"
 
     access_control:
@@ -24,6 +27,7 @@ security:
             roles: PUBLIC_ACCESS,
         }
         - { path: ^/pimcore-studio/api, roles: ROLE_PIMCORE_USER }
+        - { path: ^/pimcore-mcp/, roles: ROLE_PIMCORE_USER }
 
     role_hierarchy:
         # Pimcore admin  // DO NOT CHANGE!

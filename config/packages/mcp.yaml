@@ -1,0 +1,51 @@
+# MCP server for Claude (custom connector).
+#
+# URL:   <OAUTH_ISSUER>/pimcore-mcp/studio/pimcore
+# Auth:  embedded OAuth 2.1 server of Pimcore Studio — Claude sends the user to the
+#        Studio login + consent screen; tools then run with that user's Pimcore permissions.
+# Tools: src/Mcp/Tool/*.php
+#
+# Required env vars (Railway): OAUTH_ISSUER, OAUTH_PRIVATE_KEY, OAUTH_PUBLIC_KEY (both base64 PEM),
+# OAUTH_ENCRYPTION_KEY.
+
+pimcore_studio_backend:
+    oauth:
+        enabled: true
+        issuer: '%env(OAUTH_ISSUER)%'
+        keys:
+            private_key: '%env(base64:OAUTH_PRIVATE_KEY)%'
+            public_key: '%env(base64:OAUTH_PUBLIC_KEY)%'
+            encryption_key: '%env(OAUTH_ENCRYPTION_KEY)%'
+        clients:
+            # Pre-registered public client for claude.ai / Claude apps (enter as OAuth Client ID
+            # in the connector's advanced settings if Claude does not register itself).
+            claude:
+                name: 'Claude'
+                redirect_uris:
+                    - 'https://claude.ai/api/mcp/auth_callback'
+                    - 'https://claude.com/api/mcp/auth_callback'
+        # Lets Claude register itself (RFC 7591). Registration alone grants nothing: every
+        # token still needs a Pimcore login and an explicit consent.
+        dynamic_client_registration:
+            enabled: true
+
+    studio_mcp_servers:
+        pimcore:
+            name: 'Pimcore'
+            description: 'Manage data object classes and data objects (create, read, update, delete).'
+            enabled: true
+            tools:
+                - pimcore_list_classes
+                - pimcore_get_class
+                - pimcore_create_class
+                - pimcore_add_class_fields
+                - pimcore_list_objects
+                - pimcore_get_object
+                - pimcore_create_object
+                - pimcore_update_object
+                - pimcore_create_folder
+                - pimcore_delete_objects
+            access:
+                owner: admin
+                shared_users:
+                    - { name: admin, can_read: true, can_access: true, can_edit: false }

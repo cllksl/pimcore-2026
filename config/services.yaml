@@ -58,6 +58,15 @@ services:
     # COMMANDS
     #
 
+    #
+    # MCP (Claude connector) — tools are assigned to the "pimcore" server in config/packages/mcp.yaml
+    #
+    App\Mcp\McpContext: ~
+
+    App\Mcp\Tool\:
+        resource: '../src/Mcp/Tool/*'
+        tags: [ 'pimcore.studio_backend.mcp_tool' ]
+
     # auto-register all commands as services
     App\Command\:
         resource: '../src/Command/*'

@@ -44,6 +44,12 @@ echo "Installing bundle assets..."
 
 su -s /bin/bash www-data -c 'php bin/console assets:install public --env=prod'
 
+echo "Running database migrations..."
+# composer installs the latest 2026.x-dev on every build, so bundles can ship new tables
+# (e.g. the OAuth token tables used by the MCP connector).
+su -s /bin/bash www-data -c 'php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration --env=prod' \
+    || echo "WARNING: migrations failed, continuing"
+
 echo "Clearing Symfony cache..."
 
 su -s /bin/bash www-data -c 'php bin/console cache:clear --env=prod'
