@@ -26,12 +26,26 @@ for DIR in var/classes var/config public/var; do
     ln -s "$TARGET" "$DIR"
 
     chown -R www-data:www-data "$TARGET"
+    chmod -R u+rwX,g+rwX "$TARGET"
 done
 
 echo "Preparing Pimcore directories..."
 
-mkdir -p var/cache var/log
-chown -R www-data:www-data var public/var
+mkdir -p var/cache \
+         var/log \
+         var/generic-data-index/snapshots \
+         public/bundles
+
+chown -R www-data:www-data var public/bundles
+chmod -R u+rwX,g+rwX var public/bundles
+
+echo "Installing bundle assets..."
+
+su -s /bin/bash www-data -c 'php bin/console assets:install public --env=prod'
+
+echo "Clearing Symfony cache..."
+
+su -s /bin/bash www-data -c 'php bin/console cache:clear --env=prod'
 
 echo "Starting PHP-FPM..."
 php-fpm -D
