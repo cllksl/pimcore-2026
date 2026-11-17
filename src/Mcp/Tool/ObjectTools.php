@@ -276,13 +276,44 @@ final class ObjectTools
                 ));
             }
             try {
-                $object->set($name, $this->convert($fd, $value, $object));
+                $object->set($name, $this->matchSetterType($object, $name, $this->convert($fd, $value, $object)));
             } catch (ToolCallException $e) {
                 throw $e;
             } catch (\Throwable $e) {
                 throw new ToolCallException(sprintf('Invalid value for "%s" (%s): %s', $name, $fd->getFieldtype(), $e->getMessage()));
             }
         }
+    }
+
+    /**
+     * Generated setters are typed per field config (e.g. numeric with decimal precision takes
+     * ?string, a plain numeric ?float). Coerce scalars to what the setter declares.
+     */
+    private function matchSetterType(DataObject\Concrete $object, string $name, mixed $value): mixed
+    {
+        if (!is_scalar($value)) {
+            return $value;
+        }
+        $method = 'set' . ucfirst($name);
+        if (!method_exists($object, $method)) {
+            return $value;
+        }
+        $type = (new \ReflectionMethod($object, $method))->getParameters()[0]?->getType();
+        $names = $type instanceof \ReflectionNamedType
+            ? [$type->getName()]
+            : ($type instanceof \ReflectionUnionType ? array_map(static fn ($t) => $t->getName(), $type->getTypes()) : []);
+        $actual = get_debug_type($value);
+        if ($names === [] || in_array($actual, $names, true) || in_array('mixed', $names, true)) {
+            return $value;
+        }
+
+        return match (true) {
+            in_array('string', $names, true) => (string) $value,
+            in_array('float', $names, true) => (float) $value,
+            in_array('int', $names, true) => (int) $value,
+            in_array('bool', $names, true) => (bool) $value,
+            default => $value,
+        };
     }
 
     private function convert(Data $fd, mixed $value, DataObject\Concrete $object): mixed

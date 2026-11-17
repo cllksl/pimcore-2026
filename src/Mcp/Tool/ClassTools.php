@@ -200,6 +200,9 @@ final class ClassTools
             $container->addChild($data);
         }
 
+        // Re-set the layout so the class re-extracts its field definitions; otherwise save()
+        // regenerates the PHP class and table from the stale list without the new fields.
+        $definition->setLayoutDefinitions($root);
         $definition->setUserModification($this->ctx->user()->getId());
         $definition->save();
 
