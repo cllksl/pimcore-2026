@@ -1,0 +1,5 @@
+# Keep PHP sessions in Redis so Studio logins survive redeploys (the container
+# filesystem, where native sessions live by default, is replaced on every deploy).
+framework:
+    session:
+        handler_id: '%env(REDIS_URL)%'
