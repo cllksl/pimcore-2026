@@ -5,13 +5,14 @@
 #        Studio login + consent screen; tools then run with that user's Pimcore permissions.
 # Tools: src/Mcp/Tool/*.php
 #
-# Required env vars (Railway): OAUTH_ISSUER, OAUTH_PRIVATE_KEY, OAUTH_PUBLIC_KEY (both base64 PEM),
+# Required env vars (Railway): OAUTH_PRIVATE_KEY, OAUTH_PUBLIC_KEY (both base64 PEM),
 # OAUTH_ENCRYPTION_KEY.
 
 pimcore_studio_backend:
     oauth:
         enabled: true
-        issuer: '%env(OAUTH_ISSUER)%'
+        # Public origin of this install (literal: the bundle validates it at container build).
+        issuer: 'https://pimcore-production-19660999.up.railway.app'
         keys:
             private_key: '%env(base64:OAUTH_PRIVATE_KEY)%'
             public_key: '%env(base64:OAUTH_PUBLIC_KEY)%'
